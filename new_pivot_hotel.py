@@ -337,7 +337,7 @@ def create_combined_report_pdf(veg_data, vendor_data, selected_date):
             if num_cols <= 4:
                 col_widths = [available_width/num_cols] * num_cols
             else:
-                col_widths = [1.8*inch, 1.2*inch] + [0.9*inch] * (num_cols - 2)
+                col_widths = [1.8*inch, 1.2*inch] + [1.2*inch] * (num_cols - 2)
                 if sum(col_widths) > available_width:
                     col_widths = [available_width/num_cols] * num_cols
             
