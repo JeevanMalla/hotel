@@ -69,7 +69,7 @@ def process_data_for_date(df, selected_date):
     
     # Convert DATE column to datetime if needed
     try:
-        df['DATE'] = pd.to_datetime(df['DATE'], format='%d/%m/%Y')
+        df['DATE'] = pd.to_datetime(df['DATE'], format='%d/%m/%Y', errors='coerce')
         selected_date = pd.to_datetime(selected_date)
         
         # Filter by date
@@ -84,7 +84,6 @@ def process_data_for_date(df, selected_date):
         filtered_df = filtered_df[filtered_df['QUANTITY'] > 0]  # Remove zero quantities
         
         return filtered_df, filtered_df
-        
     except Exception as e:
         st.error(f"Error processing data: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
