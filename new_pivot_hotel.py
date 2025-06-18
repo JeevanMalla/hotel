@@ -263,7 +263,7 @@ def create_combined_report_pdf(veg_data, vendor_data, selected_date):
             col_widths = [available_width/num_cols] * num_cols
         else:
             # Adjust widths for better display
-            col_widths = [1.8*inch, 1.2*inch] + [1*inch] * (num_cols - 2)
+            col_widths = [1.8*inch, 1.2*inch] + [1.2*inch] * (num_cols - 1)
             if sum(col_widths) > available_width:
                 col_widths = [available_width/num_cols] * num_cols
         
