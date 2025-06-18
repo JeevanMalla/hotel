@@ -20,8 +20,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 pdfmetrics.registerFont(TTFont('NotoSansTelugu', './NotoSansTelugu.ttf'))
 
-# ---------- CONFIGURATION ----------
-SERVICE_ACCOUNT_FILE = "hotelbillcreation-0a40f73fb215.json"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = st.secrets.general.id
 SHEET_NAMES = ['LIST_CREATION']
@@ -31,8 +29,6 @@ SHEET_NAMES = ['LIST_CREATION']
 def get_google_sheets_data():
     """Fetch data from Google Sheets with timeout handling"""
     try:
-        # Authenticate with Google Sheets API
-        x=json.load(SERVICE_ACCOUNT_FILE)
         credentials = service_account.Credentials.from_service_account_info(st.secrets["google_service_account"],scopes=SCOPES)
         service = build('sheets', 'v4', credentials=credentials)
         sheet = service.spreadsheets()
