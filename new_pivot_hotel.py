@@ -146,7 +146,7 @@ def create_vendor_report_data(df):
     if df.empty:
         return {}
     
-    vendors = sorted(df['VENDOR'].unique())  # Sort vendors alphabetically too
+    vendors = sorted(df['VENDOR'].dropna().unique())  # Sort vendors alphabetically too
     hotels = sorted(df['MAIN HOTEL NAME'].unique())
     vendor_reports = {}
     
