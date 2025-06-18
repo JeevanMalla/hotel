@@ -26,6 +26,8 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = st.secrets.general.id
 SHEET_NAMES = ['LIST_CREATION']
 
+print(st.secrets["google_service_account"])
+
 # ---------- GOOGLE SHEETS CONNECTION ----------
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def get_google_sheets_data():
