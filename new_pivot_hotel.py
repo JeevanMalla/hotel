@@ -34,7 +34,7 @@ def get_google_sheets_data():
     """Fetch data from Google Sheets with timeout handling"""
     try:
         # Authenticate with Google Sheets API
-        credentials = service_account.Credentials.from_service_account_info(st.secrets["google_service_account"])
+        credentials = service_account.Credentials.from_service_account_info(st.secrets["google_service_account"],scopes=SCOPES)
         service = build('sheets', 'v4', credentials=credentials)
         sheet = service.spreadsheets()
         
