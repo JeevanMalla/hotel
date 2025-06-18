@@ -93,8 +93,21 @@ def create_vegetable_report_data(df):
     if df.empty:
         return pd.DataFrame()
     
-    # Get unique hotels
-    hotels = sorted(df['MAIN HOTEL NAME'].unique())
+    # Define the desired hotel order
+    desired_hotel_order = ['NOVOTEL', 'GRANDBAY', 'RADISSONBLU', ' BHEEMILI']
+    
+    available_hotels = df['MAIN HOTEL NAME'].unique()
+
+    # Create ordered list of hotels - first the desired order, then any others alphabetically
+    hotels = []
+    for hotel in desired_hotel_order:
+        if hotel in available_hotels:
+            hotels.append(hotel)
+    
+    # Add any remaining hotels not in the desired order (sorted alphabetically)
+    remaining_hotels = sorted([h for h in available_hotels if h not in desired_hotel_order])
+    hotels.extend(remaining_hotels)
+
     
     # Group by PIVOT_VEGETABLE_NAME AND units combination to handle different units properly
     report_data = []
@@ -146,8 +159,24 @@ def create_vendor_report_data(df):
     if df.empty:
         return {}
     
+    # Define the desired hotel order
+    desired_hotel_order = ['NOVOTEL', 'GRANDBAY', 'RADISSONBLU', ' BHEEMILI']
+    
+    # Get unique hotels from data
+    available_hotels = df['MAIN HOTEL NAME'].unique()
+    
+    # Create ordered list of hotels - first the desired order, then any others alphabetically
+    hotels = []
+    for hotel in desired_hotel_order:
+        if hotel in available_hotels:
+            hotels.append(hotel)
+    
+    # Add any remaining hotels not in the desired order (sorted alphabetically)
+    remaining_hotels = sorted([h for h in available_hotels if h not in desired_hotel_order])
+    hotels.extend(remaining_hotels)
+    
     vendors = sorted(df['VENDOR'].dropna().unique())  # Sort vendors alphabetically too
-    hotels = sorted(df['MAIN HOTEL NAME'].unique())
+    
     vendor_reports = {}
     
     for vendor in vendors:
