@@ -26,14 +26,13 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = st.secrets.general.id
 SHEET_NAMES = ['LIST_CREATION']
 
-print(st.secrets["google_service_account"])
-
 # ---------- GOOGLE SHEETS CONNECTION ----------
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def get_google_sheets_data():
     """Fetch data from Google Sheets with timeout handling"""
     try:
         # Authenticate with Google Sheets API
+        x=json.load(SERVICE_ACCOUNT_FILE)
         credentials = service_account.Credentials.from_service_account_info(st.secrets["google_service_account"],scopes=SCOPES)
         service = build('sheets', 'v4', credentials=credentials)
         sheet = service.spreadsheets()
@@ -74,7 +73,7 @@ def process_data_for_date(df, selected_date):
     
     # Convert DATE column to datetime if needed
     try:
-        df['DATE'] = pd.to_datetime(df['DATE'])
+        df['DATE'] = pd.to_datetime(df['DATE'], format='%d/%m/%Y')
         selected_date = pd.to_datetime(selected_date)
         
         # Filter by date
@@ -85,7 +84,7 @@ def process_data_for_date(df, selected_date):
             return pd.DataFrame(), pd.DataFrame()
         
         # Clean and prepare data
-        filtered_df['QUANTITY'] = pd.to_numeric(filtered_df['QUANTITY'], errors='coerce').fillna(0)
+        filtered_df.loc[:, 'QUANTITY'] = pd.to_numeric(filtered_df['QUANTITY'], errors='coerce').fillna(0)
         filtered_df = filtered_df[filtered_df['QUANTITY'] > 0]  # Remove zero quantities
         
         return filtered_df, filtered_df
