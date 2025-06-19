@@ -262,27 +262,27 @@ def create_individual_hotel_reports_pdf(df, selected_date):
         alignment=1,  # Center alignment
         textColor=colors.darkblue
     )
-    main_title = Paragraph(f"Individual Hotel Reports - {selected_date.strftime('%Y-%m-%d')}", title_style)
-    story.append(main_title)
-    story.append(Spacer(1, 30))
+    # main_title = Paragraph(f"Individual Hotel Reports - {selected_date.strftime('%Y-%m-%d')}", title_style)
+    # story.append(main_title)
+    # story.append(Spacer(1, 30))
     
-    # Add hotel list on title page
-    hotel_list_style = ParagraphStyle(
-        'HotelList',
-        parent=styles['Normal'],
-        fontSize=14,
-        spaceAfter=10,
-        alignment=1,
-        textColor=colors.darkgreen
-    )
-    story.append(Paragraph("Hotels Included in This Report:", hotel_list_style))
-    story.append(Spacer(1, 10))
+    # # Add hotel list on title page
+    # hotel_list_style = ParagraphStyle(
+    #     'HotelList',
+    #     parent=styles['Normal'],
+    #     fontSize=14,
+    #     spaceAfter=10,
+    #     alignment=1,
+    #     textColor=colors.darkgreen
+    # )
+    # story.append(Paragraph("Hotels Included in This Report:", hotel_list_style))
+    # story.append(Spacer(1, 10))
     
-    for i, hotel in enumerate(hotels, 1):
-        hotel_item = Paragraph(f"{i}. {hotel}", styles['Normal'])
-        story.append(hotel_item)
+    # for i, hotel in enumerate(hotels, 1):
+    #     hotel_item = Paragraph(f"{i}. {hotel}", styles['Normal'])
+    #     story.append(hotel_item)
     
-    story.append(PageBreak())
+    # story.append(PageBreak())
     
     # Generate individual hotel reports
     for hotel_index, hotel in enumerate(hotels):
