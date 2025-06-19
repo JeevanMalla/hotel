@@ -176,7 +176,7 @@ def create_vendor_report_data(df):
     hotels.extend(remaining_hotels)
     
     vendors = sorted(df['VENDOR'].dropna().unique())  # Sort vendors alphabetically too
-    
+
     vendor_reports = {}
     
     for vendor in vendors:
@@ -229,6 +229,190 @@ def create_vendor_report_data(df):
     return vendor_reports
 
 # ---------- PDF GENERATION FUNCTIONS ----------
+def create_individual_hotel_reports_pdf(df, selected_date):
+    """Generate PDF with individual reports for each hotel - one hotel per page"""
+    if df.empty:
+        return None
+        
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Define the desired hotel order
+    desired_hotel_order = ['Novotel', 'Grandbay', 'Radisson', 'Bheemili']
+    
+    # Get unique hotels from data in desired order
+    available_hotels = df['MAIN HOTEL NAME'].unique()
+    hotels = []
+    for hotel in desired_hotel_order:
+        if hotel in available_hotels:
+            hotels.append(hotel)
+    
+    # Add any remaining hotels not in the desired order (sorted alphabetically)
+    remaining_hotels = sorted([h for h in available_hotels if h not in desired_hotel_order])
+    hotels.extend(remaining_hotels)
+    
+    # Main title page
+    title_style = ParagraphStyle(
+        'MainTitle',
+        parent=styles['Heading1'],
+        fontSize=20,
+        spaceAfter=30,
+        alignment=1,  # Center alignment
+        textColor=colors.darkblue
+    )
+    main_title = Paragraph(f"Individual Hotel Reports - {selected_date.strftime('%Y-%m-%d')}", title_style)
+    story.append(main_title)
+    story.append(Spacer(1, 30))
+    
+    # Add hotel list on title page
+    hotel_list_style = ParagraphStyle(
+        'HotelList',
+        parent=styles['Normal'],
+        fontSize=14,
+        spaceAfter=10,
+        alignment=1,
+        textColor=colors.darkgreen
+    )
+    story.append(Paragraph("Hotels Included in This Report:", hotel_list_style))
+    story.append(Spacer(1, 10))
+    
+    for i, hotel in enumerate(hotels, 1):
+        hotel_item = Paragraph(f"{i}. {hotel}", styles['Normal'])
+        story.append(hotel_item)
+    
+    story.append(PageBreak())
+    
+    # Generate individual hotel reports
+    for hotel_index, hotel in enumerate(hotels):
+        # Hotel title
+        hotel_title_style = ParagraphStyle(
+            'HotelTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=20,
+            spaceBefore=10,
+            alignment=1,
+            textColor=colors.darkblue
+        )
+        hotel_title = Paragraph(f"Hotel: {hotel}", hotel_title_style)
+        story.append(hotel_title)
+        
+        # Date subtitle
+        date_style = ParagraphStyle(
+            'DateStyle',
+            parent=styles['Normal'],
+            fontSize=12,
+            spaceAfter=20,
+            alignment=1,
+            textColor=colors.grey
+        )
+        date_subtitle = Paragraph(f"Date: {selected_date.strftime('%Y-%m-%d')}", date_style)
+        story.append(date_subtitle)
+        
+        # Filter data for this hotel
+        hotel_data = df[df['MAIN HOTEL NAME'] == hotel]
+        
+        if hotel_data.empty:
+            no_data_style = ParagraphStyle(
+                'NoData',
+                parent=styles['Normal'],
+                fontSize=14,
+                alignment=1,
+                textColor=colors.red
+            )
+            story.append(Paragraph("No orders found for this hotel on the selected date.", no_data_style))
+        else:
+            # Group by vegetable and sum quantities (handling multiple units)
+            hotel_report_data = []
+            
+            # Get unique combinations of PIVOT_VEGETABLE_NAME and units for this hotel
+            veg_unit_combinations = hotel_data[['PIVOT_VEGETABLE_NAME', 'UNITS', 'TELUGU NAME']].drop_duplicates()
+            
+            for _, row in veg_unit_combinations.iterrows():
+                veg_name = row['PIVOT_VEGETABLE_NAME']
+                units = row['UNITS']
+                telugu_name = row['TELUGU NAME']
+                
+                # Filter data for this specific vegetable-unit combination
+                veg_data = hotel_data[(hotel_data['PIVOT_VEGETABLE_NAME'] == veg_name) & (hotel_data['UNITS'] == units)]
+                total_qty = veg_data['QUANTITY'].sum()
+                
+                if total_qty > 0:  # Only include items with quantity > 0
+                    # Create display name that includes units if there are multiple unit types for same vegetable
+                    veg_units_count = hotel_data[hotel_data['PIVOT_VEGETABLE_NAME'] == veg_name]['UNITS'].nunique()
+                    if veg_units_count > 1:
+                        display_name = f"{veg_name} ({units})"
+                    else:
+                        display_name = veg_name
+                    
+                    hotel_report_data.append([
+                        display_name,
+                        telugu_name if telugu_name and str(telugu_name) != 'nan' else '',
+                        f"{total_qty} {units}"
+                    ])
+            
+            # Sort alphabetically by vegetable name
+            hotel_report_data.sort(key=lambda x: x[0])
+            
+            if hotel_report_data:
+                # Create table
+                table_data = [['Vegetable Name', 'Telugu Name', 'Quantity']]
+                table_data.extend(hotel_report_data)
+                
+                # Calculate column widths
+                available_width = 7 * inch  # A4 width minus margins
+                col_widths = [2.5*inch, 2*inch, 2.5*inch]
+                
+                table = Table(table_data, colWidths=col_widths)
+                table.setStyle(TableStyle([
+                    # Header styling
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 12),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    
+                    # Data rows styling
+                    ('FONTNAME', (1, 1), (1, -1), 'NotoSansTelugu'),  # Telugu column
+                    ('FONTSIZE', (0, 1), (-1, -1), 10),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                
+                story.append(table)
+                
+                # Add summary
+                story.append(Spacer(1, 20))
+                summary_style = ParagraphStyle(
+                    'Summary',
+                    parent=styles['Normal'],
+                    fontSize=11,
+                    alignment=1,
+                    textColor=colors.darkgreen
+                )
+                total_items = len(hotel_report_data)
+                summary_text = f"Total Items Ordered: {total_items}"
+                story.append(Paragraph(summary_text, summary_style))
+            else:
+                story.append(Paragraph("No items with quantities found for this hotel.", styles['Normal']))
+        
+        # Add page break after each hotel except the last one
+        if hotel_index < len(hotels) - 1:
+            story.append(PageBreak())
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+# ---------- EXISTING PDF GENERATION FUNCTIONS ----------
 def create_combined_report_pdf(veg_data, vendor_data, selected_date):
     """Generate SINGLE PDF containing both vegetable and vendor reports with Telugu support"""
     buffer = io.BytesIO()
@@ -292,7 +476,7 @@ def create_combined_report_pdf(veg_data, vendor_data, selected_date):
             col_widths = [available_width/num_cols] * num_cols
         else:
             # Adjust widths for better display
-            col_widths = [1.8*inch, 1.2*inch] + [1.2*inch] * (num_cols - 1)
+            col_widths = [1.8*inch, 1.2*inch] + [1*inch] * (num_cols - 2)
             if sum(col_widths) > available_width:
                 col_widths = [available_width/num_cols] * num_cols
         
@@ -366,7 +550,7 @@ def create_combined_report_pdf(veg_data, vendor_data, selected_date):
             if num_cols <= 4:
                 col_widths = [available_width/num_cols] * num_cols
             else:
-                col_widths = [1.8*inch, 1.2*inch] + [1.2*inch] * (num_cols - 2)
+                col_widths = [1.8*inch, 1.2*inch] + [0.9*inch] * (num_cols - 2)
                 if sum(col_widths) > available_width:
                     col_widths = [available_width/num_cols] * num_cols
             
@@ -393,14 +577,15 @@ def create_combined_report_pdf(veg_data, vendor_data, selected_date):
     buffer.seek(0)
     return buffer
 
-def generate_reports_async(df, selected_date):
-    """Generate reports asynchronously to prevent blocking"""
+# Simplified synchronous version - no threading
+def generate_reports(df, selected_date):
+    """Generate reports synchronously to avoid threading issues"""
     try:
         # Process data
         filtered_df, _ = process_data_for_date(df, selected_date)
         
         if filtered_df.empty:
-            return None, None, None
+            return None, None, None, None
         
         # Create report data
         veg_report_data = create_vegetable_report_data(filtered_df)
@@ -409,13 +594,14 @@ def generate_reports_async(df, selected_date):
         # Generate combined PDF
         combined_pdf_buffer = create_combined_report_pdf(veg_report_data, vendor_report_data, selected_date)
         
-        return veg_report_data, vendor_report_data, combined_pdf_buffer
+        # Generate individual hotel reports PDF
+        individual_hotel_pdf_buffer = create_individual_hotel_reports_pdf(filtered_df, selected_date)
+        
+        return veg_report_data, vendor_report_data, combined_pdf_buffer, individual_hotel_pdf_buffer
         
     except Exception as e:
         st.error(f"Error generating reports: {str(e)}")
-        return None, None, None
-    
-import streamlit as st
+        return None, None, None, None
 
 def check_password():
     """Simple password authentication"""
@@ -426,7 +612,7 @@ def check_password():
         st.title("🔒 Secure Access")
         password = st.text_input("Enter password to access the app:", type="password")
         
-        if password == st.secrets.general.app_password :  # Replace with your password
+        if password == "hotel@79":  # Replace with your password
             st.session_state.authenticated = True
             st.success("✅ Access granted. Loading app...")
             st.rerun()
@@ -483,63 +669,74 @@ def main():
                 status_text.text("Step 2/4: Processing data...")
                 progress_bar.progress(50)
                 
-                # Use threading to prevent blocking
-                with ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(generate_reports_async, df, selected_date)
+                # Step 3: Generate reports (synchronously)
+                status_text.text("Step 3/4: Generating reports...")
+                progress_bar.progress(75)
+                
+                try:
+                    # Call the synchronous version instead of using threading
+                    veg_report_data, vendor_report_data, combined_pdf_buffer, individual_hotel_pdf_buffer = generate_reports(df, selected_date)
                     
-                    # Step 3: Generate reports
-                    status_text.text("Step 3/4: Generating reports...")
-                    progress_bar.progress(75)
+                    # Step 4: Complete
+                    status_text.text("Step 4/4: Finalizing...")
+                    progress_bar.progress(100)
                     
-                    try:
-                        veg_report_data, vendor_report_data, combined_pdf_buffer = future.result(timeout=60)
+                    if veg_report_data is not None:
+                        # Display summary
+                        status_text.text("✅ Reports generated successfully!")
+                        st.success(f"Data processed successfully for {selected_date}")
                         
-                        # Step 4: Complete
-                        status_text.text("Step 4/4: Finalizing...")
-                        progress_bar.progress(100)
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Total Vegetables", len(veg_report_data))
+                        with col2:
+                            st.metric("Total Vendors", len(vendor_report_data) if vendor_report_data else 0)
                         
-                        if veg_report_data is not None:
-                            # Display summary
-                            status_text.text("✅ Reports generated successfully!")
-                            st.success(f"Data processed successfully for {selected_date}")
-                            
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("Total Vegetables", len(veg_report_data))
-                            with col2:
-                                st.metric("Total Vendors", len(vendor_report_data) if vendor_report_data else 0)
-                            
-                            # Single PDF download button
-                            st.markdown("### 📥 Download Complete Report")
-                            
+                        # PDF download buttons
+                        st.markdown("### 📥 Download Reports")
+                        
+                        # Create two columns for download buttons
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
                             if combined_pdf_buffer:
                                 st.download_button(
-                                    label="📊 Download Complete Report (Single PDF)",
+                                    label="📊 Download Complete Summary Report",
                                     data=combined_pdf_buffer.getvalue(),
                                     file_name=f"complete_order_report_{selected_date.strftime('%Y%m%d')}.pdf",
                                     mime="application/pdf",
-                                    help="Downloads both vegetable-wise and vendor-wise reports in a single PDF file"
+                                    help="Downloads vegetable-wise and vendor-wise summary reports in a single PDF"
                                 )
-                            
-                            # Preview data
-                            with st.expander("🔍 Preview Vegetable Report Data (Sorted Alphabetically)"):
-                                st.dataframe(veg_report_data, use_container_width=True)
-                            
-                            if vendor_report_data:
-                                with st.expander("🔍 Preview Vendor Report Data (Sorted Alphabetically)"):
-                                    for vendor, data in vendor_report_data.items():
-                                        st.subheader(f"Vendor: {vendor}")
-                                        st.dataframe(data, use_container_width=True)
-                        else:
-                            st.warning("No data found for the selected date.")
-                    
-                    except Exception as e:
-                        st.error(f"Error generating reports: {str(e)}")
-                    
-                    finally:
-                        # Clean up progress indicators
-                        progress_bar.empty()
-                        status_text.empty()
+                        
+                        with col2:
+                            if individual_hotel_pdf_buffer:
+                                st.download_button(
+                                    label="🏨 Download Individual Hotel Reports",
+                                    data=individual_hotel_pdf_buffer.getvalue(),
+                                    file_name=f"individual_hotel_reports_{selected_date.strftime('%Y%m%d')}.pdf",
+                                    mime="application/pdf",
+                                    help="Downloads individual reports for each hotel (one hotel per page)"
+                                )
+                        
+                        # Preview data
+                        with st.expander("🔍 Preview Vegetable Report Data (Sorted Alphabetically)"):
+                            st.dataframe(veg_report_data, use_container_width=True)
+                        
+                        if vendor_report_data:
+                            with st.expander("🔍 Preview Vendor Report Data (Sorted Alphabetically)"):
+                                for vendor, data in vendor_report_data.items():
+                                    st.subheader(f"Vendor: {vendor}")
+                                    st.dataframe(data, use_container_width=True)
+                    else:
+                        st.warning("No data found for the selected date.")
+                
+                except Exception as e:
+                    st.error(f"Error generating reports: {str(e)}")
+                
+                finally:
+                    # Clean up progress indicators
+                    progress_bar.empty()
+                    status_text.empty()
             else:
                 progress_bar.empty()
                 status_text.empty()
