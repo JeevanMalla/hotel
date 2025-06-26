@@ -262,27 +262,6 @@ def create_individual_hotel_reports_pdf(df, selected_date):
         alignment=1,  # Center alignment
         textColor=colors.darkblue
     )
-    # main_title = Paragraph(f"Individual Hotel Reports - {selected_date.strftime('%Y-%m-%d')}", title_style)
-    # story.append(main_title)
-    # story.append(Spacer(1, 30))
-    
-    # # Add hotel list on title page
-    # hotel_list_style = ParagraphStyle(
-    #     'HotelList',
-    #     parent=styles['Normal'],
-    #     fontSize=14,
-    #     spaceAfter=10,
-    #     alignment=1,
-    #     textColor=colors.darkgreen
-    # )
-    # story.append(Paragraph("Hotels Included in This Report:", hotel_list_style))
-    # story.append(Spacer(1, 10))
-    
-    # for i, hotel in enumerate(hotels, 1):
-    #     hotel_item = Paragraph(f"{i}. {hotel}", styles['Normal'])
-    #     story.append(hotel_item)
-    
-    # story.append(PageBreak())
     
     # Generate individual hotel reports
     for hotel_index, hotel in enumerate(hotels):
@@ -612,7 +591,7 @@ def check_password():
         st.title("🔒 Secure Access")
         password = st.text_input("Enter password to access the app:", type="password")
         
-        if password == "hotel@79":  # Replace with your password
+        if password == st.secrets.general.app_password:  # Replace with your password
             st.session_state.authenticated = True
             st.success("✅ Access granted. Loading app...")
             st.rerun()
